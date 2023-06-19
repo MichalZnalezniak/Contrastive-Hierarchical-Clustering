@@ -19,7 +19,7 @@ from omegaconf import OmegaConf
 
 # train for one epoch to learn unique features
 def train(net, data_loader, train_optimizer, epoch, cfg):
-    mean_of_probs_per_level_per_epoch = {level: torch.zeros(2**level).cuda() for level in range(1, 5)}
+    mean_of_probs_per_level_per_epoch = {level: torch.zeros(2**level).cuda() for level in range(1, cfg.tree.tree_level + 1)}
     net.train()
     total_loss, total_num, train_bar = 0.0, 0, tqdm(data_loader)
     total_tree_loss, total_reg_loss, total_simclr_loss = 0.0, 0.0, 0.0
@@ -39,16 +39,17 @@ def train(net, data_loader, train_optimizer, epoch, cfg):
         # [2*B]
         pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
         loss_simclr = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
-        ### TREE LOSS
-        tree_loss_value = tree_loss(tree_output1, tree_output2, batch_size, net.masks_for_level, mean_of_probs_per_level_per_epoch, cfg.tree.tree_level)
-        regularization_loss_value = regularization_loss(tree_output1, tree_output2, net.masks_for_level, cfg.tree.tree_level)
         ##
-        ##       
         train_optimizer.zero_grad()
-        if epoch > 1000:
-            loss = loss_simclr + tree_loss_value + (2**(-4)*regularization_loss_value)
+        if epoch > cfg.training.pretraining_epochs:
+            tree_loss_value = tree_loss(tree_output1, tree_output2, batch_size, net.masks_for_level, mean_of_probs_per_level_per_epoch, cfg.tree.tree_level)
+            regularization_loss_value = regularization_loss(tree_output1, tree_output2, net.masks_for_level, cfg.tree.tree_level)
+            loss = loss_simclr + tree_loss_value + (2**(-cfg.tree.tree_level)*regularization_loss_value)
         else:
             loss = loss_simclr
+            tree_loss_value = torch.zeros([1]) # Don't calculate the loss
+            regularization_loss_value = torch.zeros([1]) # Don't calculate the loss 
+
         loss.backward()
         train_optimizer.step()
 
@@ -59,19 +60,19 @@ def train(net, data_loader, train_optimizer, epoch, cfg):
         total_loss += loss.item() * batch_size
         train_bar.set_description('Train Epoch: [{}/{}] Loss: {:.4f}'.format(epoch, epochs, total_loss / total_num))
 
-    if epoch > 1050 and epoch <= 1056:
-        x = mean_of_probs_per_level_per_epoch[4]/ len(data_loader)
+    if epoch > cfg.training.pretraining_epochs and epoch <= cfg.training.pretraining_epochs + cfg.training.leaves_to_prune:
+        x = mean_of_probs_per_level_per_epoch[cfg.tree.tree_level]/ len(data_loader)
         x = x.double()
         test = torch.where(x > 0.0, x, 1.0) 
-        net.masks_for_level[4][torch.argmin(test)] = 0
-        print(net.masks_for_level[4])
+        net.masks_for_level[cfg.tree.tree_level][torch.argmin(test)] = 0
+        print(net.masks_for_level[cfg.tree.tree_level])
     return total_loss / total_num, total_tree_loss / total_num, total_simclr_loss / total_num, total_reg_loss / total_num
 
 # test for one epoch, use weighted knn to find the most similar images' label to assign the test image
 def test(net, memory_data_loader, test_data_loader, epoch, cfg):
     net.eval()
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
-    histograms_for_each_label_per_level = {4 : numpy.array([numpy.zeros_like(torch.empty(2**4)) for i in range(0, 10)])}
+    histograms_for_each_label_per_level = {cfg.tree.tree_level : numpy.array([numpy.zeros_like(torch.empty(2**cfg.tree.tree_level)) for i in range(0, cfg.dataset.number_classes)])}
     labels, predictions = [], []
     with torch.no_grad():
         # generate feature bank
@@ -113,8 +114,8 @@ def test(net, memory_data_loader, test_data_loader, epoch, cfg):
                 total_top5 += torch.sum((pred_labels[:, :5] == target.unsqueeze(dim=-1)).any(dim=-1).float()).item()
 
             ## TREE PART
-            prob_features = probability_vec_with_level(tree_output, 4)
-            prob_features = net.masks_for_level[4] * prob_features
+            prob_features = probability_vec_with_level(tree_output, cfg.tree.tree_level)
+            prob_features = net.masks_for_level[cfg.tree.tree_level] * prob_features
             if hasattr(test_data_loader.dataset, 'subset_index_attr'):
                 new_taget = []
                 for elem in target:
@@ -124,8 +125,8 @@ def test(net, memory_data_loader, test_data_loader, epoch, cfg):
             for prediction, label in zip(torch.argmax(prob_features.detach(), dim=1), target.detach()):
                 predictions.append(prediction.item())
                 labels.append(label.item())
-                histograms_for_each_label_per_level[4][label.item()][prediction.item()] += 1
-            df_cm = pd.DataFrame(histograms_for_each_label_per_level[4], index = [class1 for class1 in range(0,10)], columns = [i for i in range(0,2**4)])
+                histograms_for_each_label_per_level[cfg.tree.tree_level][label.item()][prediction.item()] += 1
+            df_cm = pd.DataFrame(histograms_for_each_label_per_level[cfg.tree.tree_level], index = [class1 for class1 in range(0,cfg.dataset.number_classes)], columns = [i for i in range(0,2**cfg.tree.tree_level)])
             if epoch > 1000:
                 tree_acc_val = tree_acc(df_cm)
             else:
@@ -140,9 +141,6 @@ def test(net, memory_data_loader, test_data_loader, epoch, cfg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train SimCLR')
-    parser.add_argument('--load_model', default=False, action="store_true")
-    parser.add_argument('--cc_model', default=False, action="store_true")
-    parser.add_argument('--cc_data', default=False, action="store_true")
     parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'imagenet10', 'mnist', 'fmnist', 'imagenetdogs'])
 
     args = parser.parse_args()
@@ -186,14 +184,13 @@ if __name__ == '__main__':
     save_name_pre = '{}_{}_{}_{}_{}'.format(feature_dim, temperature, k, batch_size, epochs)
     if not os.path.exists('results'):
         os.mkdir('results')
-    best_nmi = 0.0
     for epoch in range(1, epochs + 1):
         total_loss, tree_loss_train, reg_loss_train, simclr_loss_train = train(model, train_loader, optimizer, epoch, cfg)
         results['train_loss'].append(total_loss)
         results['tree_loss_train'].append(tree_loss_train)
         results['reg_loss_train'].append(reg_loss_train)
         results['simclr_loss_train'].append(simclr_loss_train)
-        if epoch > 1000:
+        if epoch > cfg.training.pretraining_epochs:
             test_acc_1, test_acc_5, tree_acc_val, nmi = test(model, memory_loader, test_loader, epoch, cfg)
             results['test_acc@1'].append(test_acc_1)
             results['test_acc@5'].append(test_acc_5)
@@ -202,14 +199,16 @@ if __name__ == '__main__':
             writer.add_scalar('loss tree', tree_loss_train, global_step=epoch)
             writer.add_scalar('nmi', nmi, global_step=epoch)
             writer.add_scalar('tree_acc', tree_acc_val, global_step=epoch)
-
             # save statistics
             data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
             data_frame.to_csv(os.path.join(writer.log_dir, '{}_statistics.csv'.format(save_name_pre)), index_label='epoch')
-            if nmi > best_nmi:
-                best_nmi = nmi
-                torch.save(model.state_dict(), 'results/{}_model.pth'.format(save_name_pre))
+        else:
+            results['test_acc@1'].append(None)
+            results['test_acc@5'].append(None)
+            results['tree_acc'].append(None)
+            results['nmi'].append(None)
 
-    torch.save(model.state_dict(), 'results/{}_model.pth'.format('last_epoch_model'))
+
+    torch.save(model.state_dict(), 'results/{}_model.pth'.format('last_epoch'))
     torch.save(model.masks_for_level, 'results/last_epoch_model_masks.pth')
     

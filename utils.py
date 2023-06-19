@@ -100,22 +100,22 @@ def get_contrastive_dataset(name):
     download_mapping[name] = True
 
     train_data = {
-        'cifar10': CIFAR10Pair(root='data', train=True, transform=get_transforms('cifar10')[0], download=download_mapping[name]),
-        # 'stl10': STL10Pair(root='data', split='unlabeled', transform=get_transforms('stl10')[0], download=download_mapping[name]),
-        # 'imagenet10': filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenet10')[0]), name), 
-        # 'imagenetdogs': filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenetdogs')[0]), name), 
-        # 'mnist': MNISTPair(root='data', train=True, transform=get_transforms('mnist')[0], download=download_mapping[name]),
-        # 'fmnist': FashionMNISTPair(root='data', train=True, transform=get_transforms('fmnist')[0], download=download_mapping[name])
+        'cifar10': CIFAR10Pair(root='data', train=True, transform=get_transforms('cifar10')[0], download=download_mapping['cifar10']),
+        'stl10': STL10Pair(root='data', split='unlabeled', transform=get_transforms('stl10')[0], download=download_mapping['stl10']),
+        'imagenet10': None if download_mapping['imagenet10'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenet10')[0]), name), 
+        'imagenetdogs': None if download_mapping['imagenetdogs'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenetdogs')[0]), name), 
+        'mnist': MNISTPair(root='data', train=True, transform=get_transforms('mnist')[0], download=download_mapping['mnist']),
+        'fmnist': FashionMNISTPair(root='data', train=True, transform=get_transforms('fmnist')[0], download=download_mapping['fmnist'])
 
     }
     
     test_data = {
-        'cifar10': CIFAR10Pair(root='data', train=False, transform=get_transforms('cifar10')[1], download=download_mapping[name]),
-        # 'stl10': STL10Pair(root='data', split='test', transform=get_transforms('stl10')[1], download=download_mapping[name]),
-        # 'imagenet10': filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='val', transform=get_transforms('imagenet10')[1]), name),
-        # 'imagenetdogs': filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='val', transform=get_transforms('imagenetdogs')[1]), name),
-        # 'mnist': MNISTPair(root='data', train=False, transform=get_transforms('mnist')[1], download=download_mapping[name]),
-        # 'fmnist': FashionMNISTPair(root='data', train=False, transform=get_transforms('fmnist')[1], download=download_mapping[name])
+        'cifar10': CIFAR10Pair(root='data', train=False, transform=get_transforms('cifar10')[1], download=download_mapping['cifar10']),
+        'stl10': STL10Pair(root='data', split='test', transform=get_transforms('stl10')[1], download=download_mapping['stl10']),
+        'imagenet10': None if download_mapping['imagenet10'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='val', transform=get_transforms('imagenet10')[1]), name),
+        'imagenetdogs': None if download_mapping['imagenetdogs'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='val', transform=get_transforms('imagenetdogs')[1]), name),
+        'mnist': MNISTPair(root='data', train=False, transform=get_transforms('mnist')[1], download=download_mapping['mnist']),
+        'fmnist': FashionMNISTPair(root='data', train=False, transform=get_transforms('fmnist')[1], download=download_mapping['fmnist'])
 
 
 
@@ -123,12 +123,12 @@ def get_contrastive_dataset(name):
     }
 
     memory_data = {
-        'cifar10': CIFAR10Pair(root='data', train=True, transform=get_transforms('cifar10')[1], download=download_mapping[name]),
-        # 'stl10': STL10Pair(root='data', split='unlabeled', transform=get_transforms('stl10')[1], download=download_mapping[name]),
-        # 'imagenet10': filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenet10')[1]), name),
-        # 'imagenetdogs': filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenetdogs')[1]), name),
-        # 'mnist': MNISTPair(root='data', train=True, transform=get_transforms('mnist')[1], download=download_mapping[name]),
-        # 'fmnist': FashionMNISTPair(root='data', train=True, transform=get_transforms('fmnist')[1], download=download_mapping[name])
+        'cifar10': CIFAR10Pair(root='data', train=True, transform=get_transforms('cifar10')[1], download=download_mapping['cifar10']),
+        'stl10': STL10Pair(root='data', split='unlabeled', transform=get_transforms('stl10')[1], download=download_mapping['stl10']),
+        'imagenet10': None if download_mapping['imagenet10'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenet10')[1]), name),
+        'imagenetdogs': None if download_mapping['imagenetdogs'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenetdogs')[1]), name),
+        'mnist': MNISTPair(root='data', train=True, transform=get_transforms('mnist')[1], download=download_mapping['mnist']),
+        'fmnist': FashionMNISTPair(root='data', train=True, transform=get_transforms('fmnist')[1], download=download_mapping['fmnist'])
 
 
     }

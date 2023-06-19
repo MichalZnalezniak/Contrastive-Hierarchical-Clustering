@@ -35,13 +35,8 @@ class Model(nn.Module):
         # projection head
         self.g = nn.Sequential(nn.Linear(final_fe_dim, 512, bias=False), nn.BatchNorm1d(512),
                                 nn.ReLU(inplace=True), nn.Linear(512, cfg.simclr.feature_dim_projection_head, bias=True))
-        self.tree_model = nn.Sequential(nn.Linear(2048, ((2**(cfg.tree.tree_level+1))-1) - 2**cfg.tree.tree_level), nn.Sigmoid())
-        self.masks_for_level = {level: torch.ones(2**level).cuda() for level in range(1, 4+1)}
-
-        
-        # if args.load_model:
-        #     self.load_state_dict(torch.load('./pre-trained/128_0.5_200_128_1000_model.pth', map_location='cpu'), strict=False)
-        #     print("Load the model")
+        self.tree_model = nn.Sequential(nn.Linear(final_fe_dim_mapping[cfg.model.name], ((2**(cfg.tree.tree_level+1))-1) - 2**cfg.tree.tree_level), nn.Sigmoid())
+        self.masks_for_level = {level: torch.ones(2**level).cuda() for level in range(1, cfg.tree.tree_level+1)}
 
 
     def forward(self, x):
@@ -49,4 +44,4 @@ class Model(nn.Module):
         feature = torch.flatten(x, start_dim=1)
         out = self.g(feature)
         tree_output = self.tree_model(feature)
-        return feature, F.normalize(out, dim=-1), tree_output
+        return F.normalize(feature, dim=-1), F.normalize(out, dim=-1), tree_output
