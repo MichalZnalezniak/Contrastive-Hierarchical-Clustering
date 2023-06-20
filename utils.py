@@ -3,6 +3,7 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10, CIFAR100, STL10, ImageNet, MNIST, FashionMNIST
 from torch.utils.data import Subset
 import numpy as np
+from torch.utils.data import ConcatDataset
 
 def get_transforms(name):
     train_transforms = {
@@ -331,3 +332,9 @@ def reassing_classes(dataset, name):
         for i, t in enumerate(dataset.targets):
             dataset.targets[i] = cifar100dict[dataset.targets[i]]
     return dataset
+
+def concat_datasets(train, test, name):
+    if name == 'cifar10' or name =='cifar100' or name == 'stl10':
+        return ConcatDataset([train, test])
+    if name == 'imagenet10' or name == 'imagenetdogs':
+        return train

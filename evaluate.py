@@ -46,11 +46,10 @@ def eval():
     model.eval()
     # data prepare
     _ , memory_data, test_data = utils.get_contrastive_dataset(args.dataset_name)
-    dataset = ConcatDataset([memory_data, test_data])
     # CIFAR100 - Reassign classes
     memory_data = utils.reassing_classes(memory_data, args.dataset_name)
     test_data = utils.reassing_classes(test_data, args.dataset_name)
-    dataset = ConcatDataset([memory_data, test_data])
+    dataset = utils.concat_datasets(memory_data, test_data, args.dataset_name)
     valid_loader = DataLoader(dataset, batch_size=cfg.training.batch_size, shuffle=True, num_workers=16, pin_memory=True, drop_last=False)
     labels, predictions = [], []
     histograms_for_each_label_per_level = {cfg.tree.tree_level : numpy.array([numpy.zeros_like(torch.empty(2**cfg.tree.tree_level)) for i in range(0, cfg.dataset.number_classes)])}
