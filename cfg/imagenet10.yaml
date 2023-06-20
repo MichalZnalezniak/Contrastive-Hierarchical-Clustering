@@ -1,5 +1,5 @@
 model:
-  name: 'resnet34'
+  name: 'resnet50'
   receptive_field_incrased: False
 dataset:
   dataset_name: 'imagenet10'

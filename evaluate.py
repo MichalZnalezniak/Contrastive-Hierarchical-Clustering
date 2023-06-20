@@ -13,7 +13,7 @@ from omegaconf import OmegaConf
 import utils
 from torch.utils.data import DataLoader, ConcatDataset
 from tree_model import probability_vec_with_level
-from metrics import tree_acc, accuracy
+from metrics import tree_acc
 from thop import profile, clever_format
 from tqdm import tqdm
 from sklearn.cluster import AgglomerativeClustering
@@ -60,6 +60,8 @@ def eval():
         prob_features = probability_vec_with_level(tree_output, cfg.tree.tree_level)
         prob_features = model.masks_for_level[cfg.tree.tree_level] * prob_features
         for prediction, label in zip(torch.argmax(prob_features.detach(), dim=1), target.detach()):
+            if hasattr(dataset, 'subset_index_attr'):
+                label = torch.Tensor([dataset.subset_index_attr.index(label)]).to(dtype=torch.int64)
             predictions.append(prediction.item())
             labels.append(label.item())
             histograms_for_each_label_per_level[cfg.tree.tree_level][label.item()][prediction.item()] += 1
