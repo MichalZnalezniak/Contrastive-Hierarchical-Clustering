@@ -3,6 +3,7 @@ model:
   receptive_field_incrased: True
 dataset:
   dataset_name: 'cifar100'
+  number_classes: 20
 tree:
   tree_level: 5
 simclr:

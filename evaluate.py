@@ -13,18 +13,19 @@ from omegaconf import OmegaConf
 import utils
 from torch.utils.data import DataLoader, ConcatDataset
 from tree_model import probability_vec_with_level
-from metrics import tree_acc
+from metrics import tree_acc, accuracy
 from thop import profile, clever_format
 from tqdm import tqdm
-
+from sklearn.cluster import AgglomerativeClustering
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
                      and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch SimCLR')
-parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'imagenet10', 'mnist', 'fmnist', 'imagenetdogs'])
+parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'cifar100', 'imagenet10', 'mnist', 'fmnist', 'imagenetdogs'])
 parser.add_argument('--save_point', default='./results/')
 
+@torch.no_grad()
 def eval():
     args = parser.parse_args()
     cfg = OmegaConf.load(f'cfg/{args.dataset_name}.yaml')
@@ -46,9 +47,11 @@ def eval():
     # data prepare
     _ , memory_data, test_data = utils.get_contrastive_dataset(args.dataset_name)
     dataset = ConcatDataset([memory_data, test_data])
-
-
-    valid_loader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=16, pin_memory=True, drop_last=False)
+    # CIFAR100 - Reassign classes
+    memory_data = utils.reassing_classes(memory_data, args.dataset_name)
+    test_data = utils.reassing_classes(test_data, args.dataset_name)
+    dataset = ConcatDataset([memory_data, test_data])
+    valid_loader = DataLoader(dataset, batch_size=cfg.training.batch_size, shuffle=True, num_workers=16, pin_memory=True, drop_last=False)
     labels, predictions = [], []
     histograms_for_each_label_per_level = {cfg.tree.tree_level : numpy.array([numpy.zeros_like(torch.empty(2**cfg.tree.tree_level)) for i in range(0, cfg.dataset.number_classes)])}
 
@@ -61,13 +64,13 @@ def eval():
             predictions.append(prediction.item())
             labels.append(label.item())
             histograms_for_each_label_per_level[cfg.tree.tree_level][label.item()][prediction.item()] += 1
-    df_cm = pd.DataFrame(histograms_for_each_label_per_level[cfg.tree.tree_level], index = [class1 for class1 in range(0,10)], columns = [i for i in range(0,2**cfg.tree.tree_level)])
+    df_cm = pd.DataFrame(histograms_for_each_label_per_level[cfg.tree.tree_level], index = [class1 for class1 in range(0,cfg.dataset.number_classes)], columns = [i for i in range(0,2**cfg.tree.tree_level)])
+    nmi = normalized_mutual_info_score(labels, predictions)
+    print(f' NMI {nmi}')
+    ari = adjusted_rand_score(labels, predictions)
+    print(f' ARI {ari}')
     tree_acc_val = tree_acc(df_cm)
-    actuall_nmi = normalized_mutual_info_score(labels, predictions)
     print(f' Tree accruacy {tree_acc_val}')
-    print(f' NMI {actuall_nmi}')
 
-
-    
 if __name__ == "__main__":
     eval()  

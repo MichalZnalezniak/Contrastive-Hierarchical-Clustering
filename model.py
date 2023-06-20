@@ -23,6 +23,9 @@ class Model(nn.Module):
         final_fe_dim = final_fe_dim_mapping[cfg.model.name]
         self.f = []
         for name, module in model_arch.named_children():
+            if cfg.dataset.dataset_name == 'mnist' or cfg.dataset.dataset_name == 'fmnist':
+                if name == 'conv1':
+                    module = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
             if cfg.model.receptive_field_incrased:
                 if name == 'conv1':
                     module = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)

@@ -141,7 +141,7 @@ def test(net, memory_data_loader, test_data_loader, epoch, cfg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train SimCLR')
-    parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'imagenet10', 'mnist', 'fmnist', 'imagenetdogs'])
+    parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'cifar100', 'imagenet10', 'mnist', 'fmnist', 'imagenetdogs'])
 
     args = parser.parse_args()
     cfg = OmegaConf.load(f'cfg/{args.dataset_name}.yaml')

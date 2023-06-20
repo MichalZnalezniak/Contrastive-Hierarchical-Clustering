@@ -5,14 +5,14 @@ dataset:
   dataset_name: 'cifar10'
   number_classes: 10
 tree:
-  tree_level: 4
+  tree_level: 5
 simclr:
   temperature: 0.5
   k: 200
   feature_dim_projection_head: 128
 training:
   epochs: 1500
-  batch_size: 128
+  batch_size: 512
   pretraining_epochs: 1000
   start_pruning_epochs: 1050
-  leaves_to_prune: 6
+  leaves_to_prune: 22
