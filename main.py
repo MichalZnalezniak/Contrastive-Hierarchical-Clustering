@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from tree_model import probability_vec_with_level, tree_loss, regularization_loss
 import utils
-from model import Model
+from model import Model, Model_vit
 from metrics import tree_acc
 import numpy
 from sklearn.metrics import normalized_mutual_info_score
@@ -166,12 +166,12 @@ if __name__ == '__main__':
     writer = SummaryWriter()
     logging.basicConfig(filename=os.path.join(writer.log_dir, 'training.log'), level=logging.DEBUG)
     # model setup and optimizer config
-    model = Model(cfg=cfg).cuda()
+    model = Model_vit(cfg=cfg).cuda()
 
 
-    flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
-    flops, params = clever_format([flops, params])
-    print('# Model Params: {} FLOPs: {}'.format(params, flops))
+    # flops, params = profile(model, inputs=(torch.randn(1, 3, 224, 224).cuda(),))
+    # flops, params = clever_format([flops, params])
+    # print('# Model Params: {} FLOPs: {}'.format(params, flops))
 
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
     print(model)
