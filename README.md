@@ -1,6 +1,6 @@
 # Contrastive-Hierarchical-Clustering
-This is the official code for the paper ["Contrastive Hierarchical Clustering"](https://arxiv.org/pdf/2303.03389.pdf) (ECML PKDD 2023).
-Our repository is build on top of the [SimCLR implementation](https://github.com/leftthomas/SimCLR) done by [leftthomas](https://github.com/leftthomas)
+This is the official code for the paper [Contrastive Hierarchical Clustering](https://arxiv.org/pdf/2303.03389.pdf) (ECML PKDD 2023).
+Our repository is build on top of the [SimCLR implementation](https://github.com/leftthomas/SimCLR) done by [leftthomas](https://github.com/leftthomas).
 
 ## Environment setup
 Our code runs on a single GPU. It does not support multi-GPUs.
