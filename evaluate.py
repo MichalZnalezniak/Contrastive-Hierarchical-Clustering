@@ -22,7 +22,7 @@ model_names = sorted(name for name in models.__dict__
                      and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch SimCLR')
-parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'cifar100', 'imagenet10', 'mnist', 'fmnist', 'imagenetdogs'])
+parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'cifar100', 'imagenet10', 'imagenetdogs'])
 parser.add_argument('--save_point', default='./results/')
 
 @torch.no_grad()

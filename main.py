@@ -60,7 +60,7 @@ def train(net, data_loader, train_optimizer, epoch, cfg):
         total_loss += loss.item() * batch_size
         train_bar.set_description('Train Epoch: [{}/{}] Loss: {:.4f}'.format(epoch, epochs, total_loss / total_num))
 
-    if epoch > cfg.training.pretraining_epochs and epoch <= cfg.training.pretraining_epochs + cfg.training.leaves_to_prune:
+    if epoch > cfg.training.start_pruning_epochs and epoch <= cfg.training.start_pruning_epochs + cfg.training.leaves_to_prune:
         x = mean_of_probs_per_level_per_epoch[cfg.tree.tree_level]/ len(data_loader)
         x = x.double()
         test = torch.where(x > 0.0, x, 1.0) 
@@ -141,7 +141,7 @@ def test(net, memory_data_loader, test_data_loader, epoch, cfg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train SimCLR')
-    parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'cifar100', 'imagenet10', 'mnist', 'fmnist', 'imagenetdogs'])
+    parser.add_argument('--dataset-name', default='cifar10', choices=['stl10', 'cifar10', 'cifar100', 'imagenet10', 'imagenetdogs'])
 
     args = parser.parse_args()
     cfg = OmegaConf.load(f'cfg/{args.dataset_name}.yaml')

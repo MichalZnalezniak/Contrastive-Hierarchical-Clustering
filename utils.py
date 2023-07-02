@@ -45,23 +45,7 @@ def get_transforms(name):
                         transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
                         transforms.RandomGrayscale(p=0.2),
                         transforms.ToTensor(),
-                        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
-
-        'mnist': transforms.Compose([
-                        transforms.RandomResizedCrop(28),
-                        transforms.RandomHorizontalFlip(p=0.5),
-                        transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-                        transforms.RandomGrayscale(p=0.2),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.1307,), (0.3081,))]),
-        'fmnist': transforms.Compose([
-                        transforms.RandomResizedCrop(28),
-                        transforms.RandomHorizontalFlip(p=0.5),
-                        transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-                        transforms.RandomGrayscale(p=0.2),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.5,), (0.5,))])
-   
+                        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]), 
     }
 
     valid_transforms = {
@@ -85,14 +69,6 @@ def get_transforms(name):
                         transforms.Resize((224, 224)),
                         transforms.ToTensor(),
                         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
-        'mnist': transforms.Compose([
-                        transforms.Resize(28),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.1307,), (0.3081,))]),
-        'fmnist': transforms.Compose([
-                        transforms.Resize(28),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.5,), (0.5,))])
     }
     return train_transforms[name], valid_transforms[name]
 
@@ -107,8 +83,6 @@ def get_contrastive_dataset(name):
         'stl10' : False,
         'imagenet10' : False,
         'imagenetdogs' : False,
-        'mnist' : False,
-        'fmnist' : False,
     }
     # Only download the chosen dataset
     download_mapping[name] = True
@@ -119,8 +93,6 @@ def get_contrastive_dataset(name):
         'stl10': None if download_mapping['stl10'] == False else STL10Pair(root='data', split='unlabeled', transform=get_transforms('stl10')[0], download=download_mapping['stl10']),
         'imagenet10': None if download_mapping['imagenet10'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenet10')[0]), name), 
         'imagenetdogs': None if download_mapping['imagenetdogs'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenetdogs')[0]), name), 
-        'mnist': None if download_mapping['mnist'] == False else MNISTPair(root='data', train=True, transform=get_transforms('mnist')[0], download=download_mapping['mnist']),
-        'fmnist': None if download_mapping['fmnist'] == False else FashionMNISTPair(root='data', train=True, transform=get_transforms('fmnist')[0], download=download_mapping['fmnist'])
 
     }
     
@@ -130,8 +102,6 @@ def get_contrastive_dataset(name):
         'stl10': None if download_mapping['stl10'] == False else STL10Pair(root='data', split='test', transform=get_transforms('stl10')[1], download=download_mapping['stl10']),
         'imagenet10': None if download_mapping['imagenet10'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='val', transform=get_transforms('imagenet10')[1]), name),
         'imagenetdogs': None if download_mapping['imagenetdogs'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='val', transform=get_transforms('imagenetdogs')[1]), name),
-        'mnist': None if download_mapping['mnist'] == False else MNISTPair(root='data', train=False, transform=get_transforms('mnist')[1], download=download_mapping['mnist']),
-        'fmnist': None if download_mapping['fmnist'] == False else FashionMNISTPair(root='data', train=False, transform=get_transforms('fmnist')[1], download=download_mapping['fmnist'])
 
     }
 
@@ -141,8 +111,6 @@ def get_contrastive_dataset(name):
         'stl10': None if download_mapping['stl10'] == False else STL10Pair(root='data', split='train', transform=get_transforms('stl10')[1], download=download_mapping['stl10']),
         'imagenet10': None if download_mapping['imagenet10'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenet10')[1]), name),
         'imagenetdogs': None if download_mapping['imagenetdogs'] == False else filter_ImageNet(ImageNetPair('/shared/sets/datasets/vision/ImageNet', split='train', transform=get_transforms('imagenetdogs')[1]), name),
-        'mnist': None if download_mapping['mnist'] == False else MNISTPair(root='data', train=True, transform=get_transforms('mnist')[1], download=download_mapping['mnist']),
-        'fmnist': None if download_mapping['fmnist'] == False else FashionMNISTPair(root='data', train=True, transform=get_transforms('fmnist')[1], download=download_mapping['fmnist'])
 
     }
     return train_data[name], memory_data[name], test_data[name]
@@ -264,43 +232,6 @@ class CIFAR100Pair(CIFAR100):
 
         return pos_1, pos_2, target
     
-
-
-class MNISTPair(MNIST):
-    """MNIST Dataset.
-    """
-
-    def __getitem__(self, index):
-        img, target = self.data[index], self.targets[index]
-        img = Image.fromarray(img.numpy(), mode="L")
-
-        if self.transform is not None:
-            pos_1 = self.transform(img)
-            pos_2 = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return pos_1, pos_2, target
-
-
-class FashionMNISTPair(FashionMNIST):
-    """FashionMNIST Dataset.
-    """
-
-    def __getitem__(self, index):
-        img, target = self.data[index], self.targets[index]
-        img = Image.fromarray(img.numpy(), mode="L")
-
-        if self.transform is not None:
-            pos_1 = self.transform(img)
-            pos_2 = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return pos_1, pos_2, target
-
 
 def reassing_classes(dataset, name):
     if name == 'cifar100':
