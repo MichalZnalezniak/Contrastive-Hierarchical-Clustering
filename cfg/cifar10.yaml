@@ -1,5 +1,5 @@
 model:
-  name: 'resnet50'
+  name: 'resnet18'
   receptive_field_incrased: True
 dataset:
   dataset_name: 'cifar10'

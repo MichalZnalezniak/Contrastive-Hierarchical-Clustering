@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models.resnet import resnet18, resnet34, resnet50
-
+from transformers import AdamW, ViTFeatureExtractor, ViTModel, ViTConfig
+from unet import UNet
 
 class Model(nn.Module):
     def __init__(self, cfg=None):
+
         super(Model, self).__init__()
 
         model_mapping = {
@@ -41,6 +43,26 @@ class Model(nn.Module):
         self.tree_model = nn.Sequential(nn.Linear(final_fe_dim_mapping[cfg.model.name], ((2**(cfg.tree.tree_level+1))-1) - 2**cfg.tree.tree_level), nn.Sigmoid())
         self.masks_for_level = {level: torch.ones(2**level).cuda() for level in range(1, cfg.tree.tree_level+1)}
 
+
+    def forward(self, x):
+        x = self.f(x)
+        feature = torch.flatten(x, start_dim=1)
+        out = self.g(feature)
+        tree_output = self.tree_model(feature)
+        return F.normalize(feature, dim=-1), F.normalize(out, dim=-1), tree_output
+    
+
+class Model_vit(nn.Module):
+    def __init__(self, cfg=None):
+        super(Model, self).__init__()
+        
+        self.f = ViTModel(ViTConfig())
+        # projection head
+        self.g = nn.Sequential(nn.Linear(768, 512, bias=False), nn.BatchNorm1d(512),
+                                nn.ReLU(inplace=True), nn.Linear(512, cfg.simclr.feature_dim_projection_head, bias=True))
+        
+        self.tree_model = nn.Sequential(nn.Linear(768, ((2**(cfg.tree.tree_level+1))-1) - 2**cfg.tree.tree_level), nn.Sigmoid())
+        self.masks_for_level = {level: torch.ones(2**level).cuda() for level in range(1, cfg.tree.tree_level+1)}
 
     def forward(self, x):
         x = self.f(x)
