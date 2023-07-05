@@ -7,7 +7,7 @@ import torch.optim as optim
 from thop import profile, clever_format
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from tree_model import probability_vec_with_level, tree_loss, regularization_loss
+from tree_losses import probability_vec_with_level, tree_loss, regularization_loss
 import utils
 from model import Model
 from metrics import tree_acc
