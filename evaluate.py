@@ -1,22 +1,18 @@
-import io
 from model import Model
 import torch
 from torch.utils.tensorboard import SummaryWriter
-import matplotlib.pyplot as plt
 from torchvision import models
 import argparse
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 from omegaconf import OmegaConf
 import utils
-from torch.utils.data import DataLoader, ConcatDataset
-from tree_model import probability_vec_with_level
+from torch.utils.data import DataLoader
+from tree_losses import probability_vec_with_level
 from metrics import tree_acc
 from thop import profile, clever_format
 from tqdm import tqdm
-from sklearn.cluster import AgglomerativeClustering
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
                      and callable(models.__dict__[name]))
