@@ -27,10 +27,36 @@ def train(net, data_loader, train_optimizer, epoch, cfg):
         pos_1, pos_2 = pos_1.cuda(non_blocking=True), pos_2.cuda(non_blocking=True)
         feature_1, out_1, tree_output1 = net(pos_1)
         feature_2, out_2, tree_output2 = net(pos_2)
+        feature_1, out_1_s, tree_output1_s = model_student(pos_1)
+        feature_2, out_2_s, tree_output2_s = model_student(pos_2)
+        ##########################################
+        #          Reinforecement MASK           #
+        ##########################################
+        prob_features_1_s = probability_vec_with_level(tree_output1_s, cfg.tree.tree_level)
+        prob_features_1_s = model.masks_for_level[cfg.tree.tree_level] * prob_features_1_s
+        predictions_1 = torch.argmax(prob_features_1_s.detach(), dim=1)
+        prob_features_2_s = probability_vec_with_level(tree_output2_s, cfg.tree.tree_level)
+        prob_features_2_s = model.masks_for_level[cfg.tree.tree_level] * prob_features_2_s
+        predictions_2 = torch.argmax(prob_features_2_s.detach(), dim=1)
+        labels_rein = torch.cat([predictions_1, predictions_2], dim=0)
+        labels_rein = (labels_rein.unsqueeze(0) == labels_rein.unsqueeze(1)).float()
+        mask = torch.eye(labels_rein.shape[0], dtype=torch.bool).cuda()
+        labels_rein = labels_rein * ~mask
+        # print(f"Labels_rein {labels_rein}")
         # [2*B, D]
         out = torch.cat([out_1, out_2], dim=0)
         # [2*B, 2*B]
+        labels = torch.cat([torch.arange(batch_size) for i in range(2)], dim=0)
+        labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
+        labels = labels.cuda()
+        mask = torch.eye(labels.shape[0], dtype=torch.bool).cuda()
+        labels = labels * ~mask
         sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
+        # print(f"Labels before or {labels}")
+        labels = torch.logical_or(labels, labels_rein).long()
+        # print(f"Labels after or {labels}")
+        pos_matrix_new = torch.sum(sim_matrix * labels, dim=-1)
+        # print(f'Pos_metrix_new {pos_matrix_new}')
         mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
         # [2*B, 2*B-1]
         sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
@@ -38,7 +64,8 @@ def train(net, data_loader, train_optimizer, epoch, cfg):
         pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
         # [2*B]
         pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-        loss_simclr = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+        # print(f' pos_sim {pos_sim}')
+        loss_simclr = (- torch.log(pos_matrix_new / sim_matrix.sum(dim=-1))).mean()
         ##
         train_optimizer.zero_grad()
         if epoch > cfg.training.pretraining_epochs:
@@ -167,14 +194,20 @@ if __name__ == '__main__':
     logging.basicConfig(filename=os.path.join(writer.log_dir, 'training.log'), level=logging.DEBUG)
     # model setup and optimizer config
     model = Model(cfg=cfg).cuda()
-
-
     flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
     flops, params = clever_format([flops, params])
     print('# Model Params: {} FLOPs: {}'.format(params, flops))
-
+    model_student = Model(cfg=cfg).cuda()
+    flops, params = profile(model_student, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
+    flops, params = clever_format([flops, params])
+    args.save_point = './pre-trained/CIFAR10/models/'
+    checkpoint = torch.load(args.save_point + "last_epoch_model.pth")
+    model_student.load_state_dict(checkpoint)
+    masks_for_level = torch.load(args.save_point + "last_epoch_model_masks.pth")
+    model_student.masks_for_level = masks_for_level
+    model_student.requires_grad_(False)
+    model_student.eval()
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
-    print(model)
     # c = len(memory_data.classes)
     # training loop
 # training loop
@@ -190,23 +223,23 @@ if __name__ == '__main__':
         results['tree_loss_train'].append(tree_loss_train)
         results['reg_loss_train'].append(reg_loss_train)
         results['simclr_loss_train'].append(simclr_loss_train)
-        if epoch > cfg.training.pretraining_epochs:
-            test_acc_1, test_acc_5, tree_acc_val, nmi = test(model, memory_loader, test_loader, epoch, cfg)
-            results['test_acc@1'].append(test_acc_1)
-            results['test_acc@5'].append(test_acc_5)
-            results['tree_acc'].append(tree_acc_val)
-            results['nmi'].append(nmi)
-            writer.add_scalar('loss tree', tree_loss_train, global_step=epoch)
-            writer.add_scalar('nmi', nmi, global_step=epoch)
-            writer.add_scalar('tree_acc', tree_acc_val, global_step=epoch)
-            # save statistics
-            data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
-            data_frame.to_csv(os.path.join(writer.log_dir, '{}_statistics.csv'.format(save_name_pre)), index_label='epoch')
-        else:
-            results['test_acc@1'].append(None)
-            results['test_acc@5'].append(None)
-            results['tree_acc'].append(None)
-            results['nmi'].append(None)
+        # if epoch > cfg.training.pretraining_epochs:
+        test_acc_1, test_acc_5, tree_acc_val, nmi = test(model, memory_loader, test_loader, epoch, cfg)
+        results['test_acc@1'].append(test_acc_1)
+        results['test_acc@5'].append(test_acc_5)
+        results['tree_acc'].append(tree_acc_val)
+        results['nmi'].append(nmi)
+        writer.add_scalar('loss tree', tree_loss_train, global_step=epoch)
+        writer.add_scalar('nmi', nmi, global_step=epoch)
+        writer.add_scalar('tree_acc', tree_acc_val, global_step=epoch)
+        # save statistics
+        data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
+        data_frame.to_csv(os.path.join(writer.log_dir, '{}_statistics.csv'.format(save_name_pre)), index_label='epoch')
+        # else:
+        #     results['test_acc@1'].append(None)
+        #     results['test_acc@5'].append(None)
+        #     results['tree_acc'].append(None)
+        #     results['nmi'].append(None)
 
 
     torch.save(model.state_dict(), 'results/{}_model.pth'.format('last_epoch'))
