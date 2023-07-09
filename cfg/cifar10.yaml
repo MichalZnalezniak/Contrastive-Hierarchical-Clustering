@@ -15,4 +15,4 @@ training:
   batch_size: 512
   pretraining_epochs: 1000
   start_pruning_epochs: 1050
-  leaves_to_prune: 22
+  leaves_to_prune: 6
