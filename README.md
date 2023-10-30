@@ -8,6 +8,18 @@ The code is compatible with `Pytorch >= 1.7`. See environment.yml for all prereq
 ```
 conda env create -f environment.yml
 ```
+### Alternative instalation
+```
+conda create -n chc python=3.7.6
+conda activate chc
+conda install pytorch==1.7.0 torchvision==0.8.0 pytorch-cuda=11.7 -c pytorch -c nvidia
+conda install tensorboard
+conda install pandas
+conda install -c anaconda scikit-learn
+pip install omegaconf
+pip install thop
+conda install -c conda-forge tqdm
+```
 
 ## Training
 For every dataset configuration file `cfg/<datasetname>` specifies model architectures and hyperparameters for the training.
