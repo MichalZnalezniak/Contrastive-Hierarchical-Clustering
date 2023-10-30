@@ -6,7 +6,7 @@ Our repository is build on top of the [SimCLR implementation](https://github.com
 Our code runs on a single GPU. It does not support multi-GPUs.
 The code is compatible with `Pytorch >= 1.7`. See requirements.txt for all prerequisites, and you can also install them using the following command.
 ```
-conda create --name <env> --file requirements.txt
+conda env create -f environment.yml
 ```
 
 ## Training
