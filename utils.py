@@ -8,7 +8,7 @@ from torch.utils.data import ConcatDataset
 def get_transforms(name):
     train_transforms = {
         'cifar10': transforms.Compose([
-                        transforms.RandomResizedCrop(32),
+                        transforms.RandomResizedCrop(224),
                         transforms.RandomHorizontalFlip(p=0.5),
                         transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
                         transforms.RandomGrayscale(p=0.2),
@@ -50,7 +50,7 @@ def get_transforms(name):
 
     valid_transforms = {
         'cifar10': transforms.Compose([
-                        transforms.Resize(32),
+                        transforms.Resize(224),
                         transforms.ToTensor(),
                         transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])]),
         'cifar100': transforms.Compose([

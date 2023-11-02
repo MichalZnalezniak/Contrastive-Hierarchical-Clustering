@@ -10,9 +10,9 @@ conda env create -f environment.yml
 ```
 ### Alternative instalation
 ```
-conda create -n chc python=3.7.6
+conda create -n chc python=3.8
 conda activate chc
-conda install pytorch==1.7.0 torchvision==0.8.0 pytorch-cuda=11.7 -c pytorch -c nvidia
+conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.7 -c pytorch -c nvidia
 conda install tensorboard
 conda install pandas
 conda install -c anaconda scikit-learn

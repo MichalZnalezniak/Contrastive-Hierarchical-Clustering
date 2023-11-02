@@ -15,6 +15,7 @@ from sklearn.metrics import normalized_mutual_info_score
 from torch.utils.tensorboard import SummaryWriter
 import logging
 from omegaconf import OmegaConf
+from torchvision.models import vit_b_16
 
 # train for one epoch to learn unique features
 def train(net, data_loader, train_optimizer, epoch, cfg):
@@ -168,9 +169,9 @@ if __name__ == '__main__':
     model = Model(cfg=cfg).cuda()
 
 
-    flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
-    flops, params = clever_format([flops, params])
-    print('# Model Params: {} FLOPs: {}'.format(params, flops))
+    # flops, params = profile(model, inputs=(torch.randn(1, 3, 224, 224).cuda(),))
+    # flops, params = clever_format([flops, params])
+    # print('# Model Params: {} FLOPs: {}'.format(params, flops))
 
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
     print(model)
@@ -206,6 +207,9 @@ if __name__ == '__main__':
             results['test_acc@5'].append(None)
             results['tree_acc'].append(None)
             results['nmi'].append(None)
+        if epoch == cfg.training.pretraining_epochs:
+            torch.save(model.state_dict(), 'results/{}_model.pth'.format('pre_training'))
+
 
 
     torch.save(model.state_dict(), 'results/{}_model.pth'.format('last_epoch'))
