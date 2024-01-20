@@ -33,7 +33,7 @@ python main.py --dataset-name imagenetdogs # Start training for ImageNetDogs
 
 ## Evaluation and pretrained models
 After the training, model can be evaluate with `evaulate.py` to generate NMI, ARI and ACC metrics. 
-Pretrained models are available in `pre-traiend` folder.
+Pretrained models are available in `pre-trained` folder.
 ```
 python evaluate.py --save_point ./pre-trained/CIFAR10/models/ --dataset-name cifar10 # Generate metrics for CIFAR10
 python evaluate.py --save_point ./pre-trained/STL10/models/ --dataset-name stl10 # Generate metrics for STL10
