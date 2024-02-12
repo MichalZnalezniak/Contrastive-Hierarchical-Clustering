@@ -13,6 +13,11 @@ from tree_losses import probability_vec_with_level
 from metrics import tree_acc
 from thop import profile, clever_format
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sn
+import io
+import torchvision
+import PIL
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
                      and callable(models.__dict__[name]))
@@ -48,19 +53,54 @@ def eval():
     dataset = utils.concat_datasets(memory_data, test_data, args.dataset_name)
     valid_loader = DataLoader(dataset, batch_size=cfg.training.batch_size, shuffle=True, num_workers=16, pin_memory=True, drop_last=False)
     labels, predictions = [], []
-    histograms_for_each_label_per_level = {cfg.tree.tree_level : numpy.array([numpy.zeros_like(torch.empty(2**cfg.tree.tree_level)) for i in range(0, cfg.dataset.number_classes)])}
+    classes = range(0,10)
+
+    # histograms_for_each_label_per_level = {cfg.tree.tree_level : numpy.array([numpy.zeros_like(torch.empty(2**cfg.tree.tree_level)) for i in range(0, cfg.dataset.number_classes)])}
+    histograms_for_each_label_per_level = {level : numpy.array([numpy.zeros_like(torch.empty(2**level)) for i in range(0, len(classes))])  for level in range(1, cfg.tree.tree_level+1)}
 
     for data, _, target in tqdm(valid_loader):
         data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
         _, _, tree_output = model(data)
-        prob_features = probability_vec_with_level(tree_output, cfg.tree.tree_level)
-        prob_features = model.masks_for_level[cfg.tree.tree_level] * prob_features
-        for prediction, label in zip(torch.argmax(prob_features.detach(), dim=1), target.detach()):
-            if hasattr(dataset, 'subset_index_attr'):
-                label = torch.Tensor([dataset.subset_index_attr.index(label)]).to(dtype=torch.int64)
-            predictions.append(prediction.item())
-            labels.append(label.item())
-            histograms_for_each_label_per_level[cfg.tree.tree_level][label.item()][prediction.item()] += 1
+        for level in range(1, cfg.tree.tree_level+1):
+            prob_features = probability_vec_with_level(tree_output, level)
+            prob_features = model.masks_for_level[level] * prob_features
+            for prediction, label in zip(torch.argmax(prob_features.detach(), dim=1), target.detach()):
+                if hasattr(dataset, 'subset_index_attr'):
+                    label = torch.Tensor([dataset.subset_index_attr.index(label)]).to(dtype=torch.int64)
+                if level == cfg.tree.tree_level:
+                    predictions.append(prediction.item())
+                    labels.append(label.item())
+                histograms_for_each_label_per_level[level][label.item()][prediction.item()] += 1
+    print(histograms_for_each_label_per_level)
+    for level in range(1, cfg.tree.tree_level+1):
+        df_cm = pd.DataFrame(histograms_for_each_label_per_level[level], columns = [i for i in range(0,2**level)])
+        df_cm_c = df_cm.loc[:, (df_cm != 0).any(axis=0)]
+        plt.figure(figsize = (15,10))
+        plt.title(f'Confusion matrix at level {level}')
+        plt.xlabel('Cluster')
+        plt.ylabel('Label')
+        sn.heatmap(df_cm,cmap='viridis', annot=True, fmt='g')
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        image = PIL.Image.open(buf)
+        image = torchvision.transforms.ToTensor()(image)          
+        writer.add_image(f'Confusion matrix at level {level}', image)
+        df_cm_p = df_cm_c.div(df_cm_c.sum(axis=1), axis=0)
+        df_cm_p = round(df_cm_c.div(df_cm_c.sum(axis=1), axis=0)*100,2)
+        plt.figure(figsize = (15,10))
+        plt.title(f'Confusion matrix at level {level}')
+        plt.xlabel('Cluster')
+        plt.ylabel('Label')
+        ax = sn.heatmap(df_cm_p,cmap='viridis', annot=True, fmt='g')
+        for t in ax.texts:
+            t.set_text(t.get_text() + "%")
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        image = PIL.Image.open(buf)
+        image = torchvision.transforms.ToTensor()(image)    
+        writer.add_image(f'Confusion matrix at level {level} %', image)
     df_cm = pd.DataFrame(histograms_for_each_label_per_level[cfg.tree.tree_level], index = [class1 for class1 in range(0,cfg.dataset.number_classes)], columns = [i for i in range(0,2**cfg.tree.tree_level)])
     nmi = normalized_mutual_info_score(labels, predictions)
     print(f' NMI {nmi}')
