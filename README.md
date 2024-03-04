@@ -1,5 +1,6 @@
 # Contrastive-Hierarchical-Clustering
-This is the official code for the paper [Contrastive Hierarchical Clustering](https://arxiv.org/pdf/2303.03389.pdf) (ECML PKDD 2023).
+This is the official code for the paper [Contrastive Hierarchical Clustering](https://link.springer.com/chapter/10.1007/978-3-031-43412-9_37) (ECML PKDD 2023). [Preprint](https://arxiv.org/abs/2303.03389).
+
 Our repository is build on top of the [SimCLR implementation](https://github.com/leftthomas/SimCLR) done by [leftthomas](https://github.com/leftthomas).
 
 ## Environment setup
