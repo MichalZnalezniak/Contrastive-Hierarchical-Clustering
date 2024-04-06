@@ -165,12 +165,12 @@ if __name__ == '__main__':
     writer = SummaryWriter()
     logging.basicConfig(filename=os.path.join(writer.log_dir, 'training.log'), level=logging.DEBUG)
     # model setup and optimizer config
-    model = Model(cfg=cfg).cuda()
+    model =(Model(cfg=cfg)).cuda()
 
 
-    flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
-    flops, params = clever_format([flops, params])
-    print('# Model Params: {} FLOPs: {}'.format(params, flops))
+    # flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
+    # flops, params = clever_format([flops, params])
+    # print('# Model Params: {} FLOPs: {}'.format(params, flops))
 
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
     print(model)
@@ -189,6 +189,8 @@ if __name__ == '__main__':
         results['tree_loss_train'].append(tree_loss_train)
         results['reg_loss_train'].append(reg_loss_train)
         results['simclr_loss_train'].append(simclr_loss_train)
+        if epoch ==  cfg.training.pretraining_epochs:
+            torch.save(model.state_dict(), 'results/{}_model.pth'.format('last_epoch'))
         if epoch > cfg.training.pretraining_epochs:
             test_acc_1, test_acc_5, tree_acc_val, nmi = test(model, memory_loader, test_loader, epoch, cfg)
             results['test_acc@1'].append(test_acc_1)
